@@ -1,0 +1,503 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>2D 圖片及文字轉 3D — 離線 V1.4</title><style>
+:root{font-family:system-ui,'Microsoft JhengHei',sans-serif;background:#0b1423;color:#ecf3ff}*{box-sizing:border-box}body{margin:0}header{padding:22px 28px;background:#15263c;border-bottom:1px solid #354963}h1{font-size:23px;margin:0 0 6px}header .headerFont{max-width:390px;margin-top:12px}header .headerFont .field{margin:0}header small,.muted{color:#a6bad1}.layout{max-width:1480px;margin:auto;padding:18px;display:grid;grid-template-columns:370px minmax(0,1fr);gap:18px}.panel{background:#17283f;border:1px solid #344c69;border-radius:16px;padding:18px;margin-bottom:16px}h2{font-size:17px;margin:0 0 15px}.field{margin:13px 0}.field label{display:block;margin-bottom:6px;font-size:14px}input,select,textarea{width:100%;background:#0c192b;border:1px solid #526a86;border-radius:8px;color:#fff;padding:9px;font:inherit}textarea{min-height:78px;resize:vertical}input[type=range]{padding:0;accent-color:#63b8ff}input[type=checkbox]{width:auto;accent-color:#63b8ff}.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;gap:9px;align-items:center;margin:10px 0;font-size:14px}.tabs{display:flex;gap:8px;margin-bottom:16px}button{cursor:pointer;border:0;border-radius:9px;background:#227fcd;color:white;font-weight:700;padding:11px 13px;font-size:14px}button.secondary{background:#3a5271}button.good{background:#168466}button:disabled{opacity:.45;cursor:not-allowed}.tabs button{flex:1}.tabs .active{background:#168466}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:9px}.canvasWrap{background:#0b1729;border:1px solid #3c5674;border-radius:12px;overflow:hidden;display:flex;justify-content:center;align-items:center;min-height:260px}canvas.preview{display:block;max-width:100%;width:100%;height:310px;touch-action:none;cursor:grab}.canvasWrap canvas#maskView{height:250px;object-fit:contain}.two{display:grid;grid-template-columns:1fr 1fr;gap:15px}.info{font-size:13px;line-height:1.7;color:#b7c9dd}.status{white-space:pre-wrap;background:#102037;border:1px solid #385472;border-radius:9px;padding:12px;font-size:13px;line-height:1.7}.warn{color:#ffd58e}.hidden{display:none!important}.sub{font-size:12px;color:#a9bfd6;margin-top:6px}footer{padding:0 18px 20px;max-width:1480px;margin:auto;color:#b7c9dd;font-size:12px;line-height:1.7}@media(max-width:900px){.layout{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+
+@media(min-width:901px){html,body{height:100%;overflow:hidden}body{display:flex;flex-direction:column}header{flex:none;padding:12px 22px}.layout{width:100%;max-width:1600px;flex:1;min-height:0;overflow:hidden;padding:12px;grid-template-columns:minmax(330px,38%) minmax(0,1fr);align-items:stretch}.layout>section{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:5px}.layout>section:nth-child(2){overflow-y:auto}.layout>section:nth-child(2) .panel:nth-child(2){position:relative}footer{display:none}canvas.preview{height:310px}}
+
+/* V1.4 — brighter, student-friendly interface; logic unchanged */
+:root{background:#eef4ff;color:#152c4c;color-scheme:light}
+body{background:linear-gradient(125deg,#eaf5ff 0%,#f6f0ff 55%,#eafbf6 100%);color:#152c4c}
+header{position:relative;background:linear-gradient(110deg,#193b83 0%,#2759b5 52%,#6b43ba 100%);border-bottom:5px solid #ffcf4a;color:#fff;box-shadow:0 5px 22px #23468026;padding:17px 28px}
+header h1{font-size:clamp(20px,2vw,29px);margin:0 0 5px;padding-right:360px;letter-spacing:.2px}
+header small{display:block;color:#e6efff;padding-right:350px;font-size:13px}
+header .headerFont{position:absolute;right:26px;top:50%;transform:translateY(-50%);width:320px;max-width:33%;margin:0}
+header .headerFont .field{margin:0}
+#scanFonts{width:100%!important;background:linear-gradient(105deg,#ffcb35,#ff8e38)!important;color:#22294a!important;border:2px solid #fff7d6!important;border-radius:14px!important;font-size:16px!important;padding:13px 10px!important;box-shadow:0 5px 0 #b96420,0 7px 17px #101f4c50;transition:transform .15s,box-shadow .15s}
+#scanFonts:hover{transform:translateY(-2px);box-shadow:0 7px 0 #b96420,0 10px 18px #101f4c50}
+#scanFontStatus{color:#fff1bf;text-align:center;font-size:11px;line-height:1.35;max-height:32px;overflow:auto}
+.panel{background:#fff;border:1px solid #cbdaf2;border-radius:18px;box-shadow:0 5px 16px #254a8114;padding:18px}
+.panel h2{background:linear-gradient(90deg,#2356b2,#537fe3);color:white;margin:-18px -18px 18px;padding:14px 18px;border-radius:17px 17px 0 0;font-size:18px;border-left:7px solid #ffd24e}
+.layout>section:first-child>.panel:first-child{border-top:6px solid #7b58db}
+.layout>section:first-child>.panel:nth-child(2){border-top:6px solid #16a78d}
+.layout>section:nth-child(2)>.panel:first-child{border-top:6px solid #f59d40}
+.layout>section:nth-child(2)>.panel:nth-child(2){border-top:6px solid #e36f9c}
+.field label,.check{color:#243c60;font-weight:650}
+input,select,textarea{background:#f8fbff;border:1.5px solid #b6c9e6;color:#193050;border-radius:10px}
+input:focus,select:focus,textarea:focus{outline:3px solid #a7d8ff;border-color:#2c83e9}
+input[type=range],input[type=checkbox]{accent-color:#7257d9}
+.muted,.sub,.info,footer{color:#58708e}
+.tabs{padding:5px;background:#eaf0ff;border-radius:13px}
+.tabs button{background:#dbe5fa;color:#2c4b82;font-size:16px;padding:13px}
+.tabs .active{background:linear-gradient(105deg,#694fe0,#3c7af0);color:white;box-shadow:0 3px 9px #604fc055}
+button{background:linear-gradient(100deg,#326bdf,#3b93e6);border-radius:11px}
+button.secondary{background:#dfeaff;color:#244b86}
+button.good{background:linear-gradient(105deg,#0f9c83,#19b68e);color:white}
+.canvasWrap{background:#f4f8ff;border-color:#c6d8ef}
+.canvasWrap:has(#threeView){background:#0d1e38}
+.status{background:#eff8ff;border-color:#b9d8f6;color:#26476c}
+.warn{color:#ad590e}
+/* Visually group the font and frame controls */
+#fontPreviewPanel{border:2px solid #b7c9f6;border-radius:12px;padding:12px;background:#f2f5ff}
+#fontPreviewChoices{background:#132842}
+#addFrame{accent-color:#ed7a3e}
+.field:has(>#addFrame),.field:has(>label.check:has(#addFrame)){background:#fff6e9}
+@media(max-width:900px){header{padding:17px}header h1,header small{padding-right:0}header .headerFont{position:static;transform:none;width:100%;max-width:none;margin-top:14px}#scanFontStatus{text-align:left}.layout{padding:12px}}
+@media(min-width:901px) and (max-width:1120px){header h1,header small{padding-right:300px}header .headerFont{width:275px;max-width:32%}#scanFonts{font-size:14px!important}}
+</style></head><body><header><h1>2D → 3D 離線轉換工具 <span style="color:#70d9c4">V1.4</span></h1><small>文字輸入 / PNG 圖片 → 修復輪廓 → STL / SVG ｜ 專為 Tinkercad、3D 打印設計 ｜ 單檔案離線運作</small><div class="headerFont"><div class="field"><button id="scanFonts" class="secondary" type="button" style="width:100%;background:#16836e;color:white;font-weight:700;font-size:17px;padding:13px">授權／讀取電腦字體</button><div class="sub" id="scanFontStatus">按上方按鈕，手動授權及讀取電腦字體。</div></div></div></header><main class="layout"><section><div class="panel"><h2 style="background:linear-gradient(90deg,#6b4cce,#9269e7)">✏️ 選擇製作方式及字體</h2><div class="tabs"><button id="tabText" class="active">文字轉 3D</button><button id="tabImage" class="secondary">PNG 轉 3D</button></div><div id="textPanel"><div class="field"><label for="words">輸入文字（支援中文、英文、數字及換行）</label><textarea id="words">字</textarea></div><div class="field"><label for="fontCategory">字體分類顯示</label><select id="fontCategory"><option value="all">全部字體</option><option value="zh">中文字體</option><option value="en">英文字體</option></select><div class="sub">按字體內的中文名稱及家族名稱分類；無法確定的字體歸入英文字體，並不代表它一定不支援中文。</div><div class="field"><label for="font">選擇電腦字體（未安裝會自動替代）</label><select id="font"><option value="Microsoft JhengHei">微軟正黑體 Microsoft JhengHei</option><option value="DFKai-SB">標楷體 DFKai-SB</option><option value="PMingLiU">新細明體 PMingLiU</option><option value="Microsoft YaHei">微軟雅黑 Microsoft YaHei</option><option value="Noto Sans CJK TC">思源黑體 Noto Sans CJK TC</option><option value="Noto Serif CJK TC">思源宋體 Noto Serif CJK TC</option><option value="Arial">Arial</option><option value="Times New Roman">Times New Roman</option><option value="sans-serif">系統無襯線 sans-serif</option><option value="serif">系統襯線 serif</option></select><div class="sub">瀏覽器安全限制下，無法保證自動列出電腦全部字體；亦可自行輸入字體名稱。</div></div></div><div class="field"><label for="fontSearch">搜尋字體（中文／英文／代碼）</label><input id="fontSearch" placeholder="例如：蘭亭、方正、FZLanTing、正黑"><div class="sub" id="fontSearchStatus">按「授權讀取電腦字體」後，可搜尋本機字體。</div></div><div class="field" id="fontPreviewPanel"><label>字體即時預覽（點選下方字體即可套用）</label><div id="fontPreviewSelected" style="background:#f8fafc;color:#172033;border-radius:9px;padding:12px;min-height:75px;overflow-wrap:anywhere;font-size:34px;line-height:1.4">字　繁體字 ABC 123</div><div class="sub">預覽會使用上方輸入的文字；字體清單可直接點選。部分字體如不支援中文字，瀏覽器會使用後備字體。</div><div id="fontPreviewChoices" style="max-height:290px;overflow-y:auto;border:1px solid #496078;border-radius:8px;margin-top:8px"></div></div><div class="field"><label for="fontCustom">其他字體名稱（選填）</label><input id="fontCustom" placeholder="例如：華康儷金黑、KaiTi"></div><div class="field"><label for="fontFile">或匯入字體檔（TTF / OTF / WOFF / WOFF2）</label><input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2,font/*"><div class="sub" id="fontStatus">字體只在本機瀏覽器載入，不會上傳。</div></div><div class="field" style="border:1px solid #4b6682;border-radius:10px;padding:12px;margin-top:16px"><label class="check" style="font-weight:700"><input type="checkbox" id="addFrame">加入正方形圓角外框（STL／SVG）</label><div class="pair"><div class="field"><label for="frameStroke">外框粗幼（mm）</label><input id="frameStroke" type="number" value="4" min="0.5" max="30" step="0.5"></div><div class="field"><label for="frameRadius">圓角半徑（mm）</label><input id="frameRadius" type="number" value="12" min="1" max="60" step="1"></div></div><div class="field"><label for="frameGap">文字與外框間距（mm）</label><input id="frameGap" type="number" value="7" min="1" max="50" step="1"></div><div class="sub">預設不加入外框。啟用後向外擴大成品尺寸，不會壓縮文字或自動降低取樣精度；外框為中空圓角正方形。</div></div><div class="field" style="border:1px solid #4b6682;border-radius:10px;padding:12px;margin:12px 0"><label class="check"><input id="evenLayout" type="checkbox" checked>文字平均分布（預設開啟）</label><div class="pair"><div class="field"><label for="layoutH">水平字距調整（px）</label><input id="layoutH" type="number" value="0" min="-40" max="120" step="2"></div><div class="field"><label for="layoutV">垂直行距調整（px）</label><input id="layoutV" type="number" value="0" min="-40" max="120" step="2"></div></div><div class="sub">平均分布適合 2×2 四字印章；可調整水平字距與垂直行距。取消勾選則按字體原本字寬排列。</div></div><div class="pair"><label class="check"><input id="bold" type="checkbox">粗體</label><div class="field"><label for="spacing">字距（px）</label><input id="spacing" type="number" value="2" min="-10" max="30" step="1"></div></div><div class="field"><label for="strokeAdjust">筆畫粗幼調整：<span id="strokeVal">0.0</span> mm（負數變幼）</label><input id="strokeAdjust" type="range" min="-2" max="2" value="0" step="0.1"><div class="sub">真正改變 STL / SVG 輪廓；過度變幼可能令細筆畫消失。</div></div><div class="field"><label for="align">文字對齊</label><select id="align"><option value="center">置中</option><option value="left">靠左</option><option value="right">靠右</option></select></div></div><div id="imagePanel" class="hidden"><div class="field"><label for="imageFile">匯入 PNG / JPG</label><input id="imageFile" type="file" accept="image/png,image/jpeg,image/webp"></div><label class="check"><input type="checkbox" id="alpha" checked>優先使用 PNG 透明背景判斷形狀</label><p class="info">建議使用原始 PNG，而不是拍攝螢幕的相片。</p></div></div><div class="panel"><h2>🛠️ 圖像修復及模型尺寸</h2><div class="field"><label>黑白閾值：<span id="thresholdVal">150</span></label><input id="threshold" type="range" min="0" max="255" value="150"></div><label class="check"><input type="checkbox" id="invert">反轉黑白（白色變實體）</label><label class="check"><input type="checkbox" id="mirrorOutput">額外左右鏡像（STL／SVG；預設關閉）</label><label class="check"><input type="checkbox" id="stlFlipOnly">STL 額外左右翻轉（僅有需要時才勾選）</label><div class="field"><label for="rotationOutput">額外輸出旋轉角度（STL／SVG；預設 0°）</label><select id="rotationOutput"><option value="0" selected>0° — 不旋轉</option><option value="90">90° — 順時針</option><option value="180">180° — 可選</option><option value="270">270° — 順時針</option></select><div class="sub">以模型中心旋轉，與左右鏡像分開設定；不影響原始 2D 預覽。</div></div><div class="sub">若 Tinkercad 顯示文字左右相反，可切換此選項並重新輸出；2D 預覽維持原圖方向。</div><div class="pair"><div class="field"><label for="repair">修補斷筆（像素）</label><select id="repair"><option value="0" selected>0 — 不修補</option><option value="1">1 — 輕微</option><option value="2">2 — 中等</option><option value="3">3 — 較強</option></select></div><div class="field"><label for="minArea">移除小碎點（像素²）</label><input id="minArea" type="number" value="5" min="0" max="500"></div></div><div class="pair"><div class="field"><label for="res">輪廓取樣精度</label><select id="res"><option value="160">快速 160px</option><option value="240">標準 240px</option><option value="360">精細 360px</option><option value="480">超精細 480px</option><option value="720" selected>高精度 720px</option><option value="960">極高精度 960px（較慢）</option></select></div><div class="field"><label for="smooth">邊緣平滑</label><select id="smooth"><option value="0">關閉</option><option value="1" selected>輕微</option><option value="2">中等</option><option value="3">較強</option></select></div></div><div class="field"><label for="vectorSmooth">SVG 曲線平滑</label><select id="vectorSmooth"><option value="0">關閉（原始像素輪廓）</option><option value="0.18">輕微（保留尖角）</option><option value="0.28" selected>標準（推薦）</option><option value="0.38">柔和（較圓滑）</option></select><div class="sub">採用角點保護的二次曲線平滑，僅影響 SVG 輸出；STL 採用逐像素匹配三角網格，優先確保封閉性；SVG 使用平滑曲線。</div></div><div class="pair"><div class="field"><label for="widthMM">文字／原圖闊度 (mm)</label><input id="widthMM" type="number" value="50" min="1" max="300" step="1"></div><div class="field"><label for="thickness">立體厚度 (mm)</label><input id="thickness" type="number" value="10" min="0.2" max="100" step="0.2"></div></div><label class="check"><input type="checkbox" id="backing">加入背板（連接分離筆畫）</label><div class="field"><label for="backingMM">背板厚度 (mm)</label><input id="backingMM" type="number" value="1.5" min="0.2" max="30" step="0.5"></div><button id="build" style="width:100%">重新建立模型及預覽</button></div></section><section><div class="panel"><h2>🖼️ 2D 圖像及輪廓預覽</h2><div class="canvasWrap"><canvas id="maskView" width="700" height="250"></canvas></div><p class="info">黑色代表會成為立體的部分。請先檢查所有筆畫有否連接，細孔有否保留。</p></div><div class="panel"><h2>🧊 3D 立體預覽（上下左右自由旋轉／滾輪縮放）</h2><div class="canvasWrap"><canvas class="preview" id="modelView" width="950" height="500"></canvas></div><p class="info">此為像素式即時立體外觀示意；V10 會在 STL 下載前檢查網格封閉性。顯示精度與 STL 細節可能略有差異。</p><div class="buttons"><button id="stl" class="good" disabled>下載 Binary STL</button><button id="svg" disabled>下載 SVG 輪廓</button></div><div class="status" id="status">V1.4：STL 沿用 V10.2 正確方向；SVG 使用 V10.1 已確認的方向。按「重新建立模型及預覽」。</div></div><div class="panel"><h2>💡 Tinkercad 使用提示</h2><p class="info">想在 Tinkercad 再設定高度，可先匯入 SVG；如需要直接使用有厚度的立體模型，請匯入 STL。中文字如有細小筆畫，可增加「修補斷筆」並減少「去除小碎點」。</p><p class="info warn">注意：V7 以瀏覽器字體渲染後的高解像度二值圖建立輪廓，並非直接解析字體的原生 Bézier 曲線。細節仍受取樣精度影響。</p></div></section></main><footer>所有資料在本機處理，沒有外部 CDN 或網絡要求。SVG 會使用平滑曲線輪廓，STL 使用經封閉性驗證的三角面；若圖案過於複雜，請降低精度以減少 Tinkercad 匯入負擔。</footer><script>
+'use strict';
+const $=id=>document.getElementById(id);let mode='text',loadedImage=null,uploadedFont='',mask=null,model=null,angle=.48,pitch=.65,zoom=1,drag=null,previewCache=null,previewFrame=0;
+function msg(t){$('status').textContent=t}function val(id){return Number($(id).value)}function clamp(v,a,b){return Math.min(b,Math.max(a,v))}
+$('tabText').onclick=()=>switchTab('text');$('tabImage').onclick=()=>switchTab('image');function switchTab(t){mode=t;$('textPanel').classList.toggle('hidden',t!=='text');$('imagePanel').classList.toggle('hidden',t!=='image');$('tabText').className=t==='text'?'active':'secondary';$('tabImage').className=t==='image'?'active':'secondary';build()}
+$('imageFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;let url=URL.createObjectURL(f);try{let img=new Image();await new Promise((ok,no)=>{img.onload=ok;img.onerror=no;img.src=url});loadedImage=img;build()}catch(err){msg('圖片讀取失敗：'+err.message)}finally{URL.revokeObjectURL(url)}};
+$('fontFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const bytes=await f.arrayBuffer();let face=new FontFace('UserUploadedFont',bytes);await face.load();document.fonts.add(face);uploadedFont='UserUploadedFont';$('fontStatus').textContent='已載入：'+f.name;build()}catch(err){uploadedFont='';$('fontStatus').textContent='字體載入失敗：'+err.message}};
+
+// Local Font Access returns the family name as registered by the OS, often English.
+// Display known localized names while keeping the original family in option.value.
+const zhFontNames={
+'microsoft jhenghei':'微軟正黑體','microsoft jhenghei ui':'微軟正黑體 UI',
+'microsoft yahei':'微軟雅黑','microsoft yahei ui':'微軟雅黑 UI',
+'pmingliu':'新細明體','mingliu':'細明體','mingliu_hkscs':'細明體_HKSCS',
+'dfkai-sb':'標楷體','kaiti':'楷體','simkai':'楷體',
+'simsun':'宋體','nsimsun':'新宋體','fangsong':'仿宋','simhei':'黑體',
+'dengxian':'等線','ms gothic':'MS 哥德體','ms mincho':'MS 明朝體',
+'yu gothic':'游哥德體','yu mincho':'游明朝體',
+'noto sans cjk tc':'思源黑體（繁體中文）','noto serif cjk tc':'思源宋體（繁體中文）',
+'source han sans tc':'思源黑體（繁體中文）','source han serif tc':'思源宋體（繁體中文）',
+'pingfang tc':'蘋方（繁體中文）','heiti tc':'黑體（繁體中文）',
+'lihei pro':'儷黑 Pro','lisong pro':'儷宋 Pro'
+};
+function fontDisplayName(name){const zh=zhFontNames[name.trim().toLowerCase()];return zh?`${zh}（${name}）`:name}
+// Read OpenType 'name' records from each locally-authorized font, without uploading data.
+// English family name remains the CSS selection key; Chinese names are display-only.
+let allLocalFontOptions=[];
+function u16(d,p){return d.getUint16(p,false)}
+function u32(d,p){return d.getUint32(p,false)}
+async function localizedName(font){
+ try{
+  const blob=await font.blob();
+  const header=new DataView(await blob.slice(0,12).arrayBuffer());
+  if(header.byteLength<12)return '';
+  const count=u16(header,4);if(count>200)return '';
+  const tables=new DataView(await blob.slice(12,12+count*16).arrayBuffer());
+  let off=-1,len=0;
+  for(let i=0;i<count;i++){let p=i*16;const tag=String.fromCharCode(...[0,1,2,3].map(j=>tables.getUint8(p+j)));
+   if(tag==='name'){off=u32(tables,p+8);len=u32(tables,p+12);break}}
+  if(off<0||len<6||len>2000000)return '';
+  const data=new DataView(await blob.slice(off,off+len).arrayBuffer());
+  const n=u16(data,2),base=u16(data,4);if(n>2000||6+n*12>data.byteLength)return '';
+  let choices=[];
+  for(let i=0;i<n;i++){
+   const p=6+i*12,platform=u16(data,p),encoding=u16(data,p+2),lang=u16(data,p+4),id=u16(data,p+6),size=u16(data,p+8),offset=u16(data,p+10);
+   if(![1,4,16].includes(id)||base+offset+size>data.byteLength||size===0)continue;
+   if(platform!==3&&platform!==0)continue;
+   const bytes=new Uint8Array(data.buffer,data.byteOffset+base+offset,size);
+   if(bytes.length%2)continue;
+   let name='';for(let j=0;j<bytes.length;j+=2)name+=String.fromCharCode(bytes[j]*256+bytes[j+1]);
+   name=name.replace(/\u0000/g,'').trim();if(!/[\u3400-\u9fff]/.test(name))continue;
+   let score=(id===16?60:id===1?50:30)+(lang===0x0c04?20:lang===0x0404?19:lang===0x1404?18:lang===0x0804?17:lang===0x1004?16:lang===0?5:0);
+   choices.push({name,score});
+  }
+  choices.sort((a,b)=>b.score-a.score);return choices[0]?.name||'';
+ }catch(e){return ''}
+}
+function fontCategoryOf(o){
+ const name=(o.label+' '+o.family).toLowerCase();
+ const known=/[\u3400-\u9fff]|(?:^|[^a-z])(?:fz|df|cw|wt|hanyi|hy|noto\s*(?:sans|serif)\s*cjk|source\s*han|mingliu|pmingliu|jhenghei|yahei|simsun|simhei|kaiti|fangsong|kaiu|msung|ming|heiti|lanting|songti|pingfang|hanzi|cjk|ar\s*pl\s*|wenquanyi)/i;
+ return known.test(name)?'zh':'en';
+}
+function visibleFontOptions(){
+ const query=$('fontSearch').value.trim().toLocaleLowerCase();
+ const category=$('fontCategory').value;
+ return allLocalFontOptions.filter(o=>(category==='all'||fontCategoryOf(o)===category)&&(!query||(o.label+' '+o.family).toLocaleLowerCase().includes(query)));
+}
+function showLocalFonts(){
+ const query=$('fontSearch').value.trim().toLocaleLowerCase();const sel=$('font'),current=sel.value;
+ const filtered=visibleFontOptions();
+ sel.replaceChildren();for(const o of filtered){const opt=document.createElement('option');opt.value=o.family;opt.textContent=o.label;sel.appendChild(opt)}
+ if(filtered.some(o=>o.family===current))sel.value=current;
+ $('fontSearchStatus').textContent=`顯示 ${filtered.length} / ${allLocalFontOptions.length} 個字體家族（中文字體 ${allLocalFontOptions.filter(o=>fontCategoryOf(o)==='zh').length}／其他 ${allLocalFontOptions.filter(o=>fontCategoryOf(o)==='en').length}）`;
+}
+$('fontSearch').addEventListener('input',showLocalFonts);
+$('fontCategory').addEventListener('change',showLocalFonts);
+function previewFontFamily(family){return '"'+String(family).replace(/["\\]/g,'')+'", "Microsoft JhengHei", sans-serif'}
+function updateFontPreview(){
+ const selected=$('font').value;const sample=($('words').value||'字　繁體字 ABC 123').slice(0,80);
+ const el=$('fontPreviewSelected');el.textContent=sample;el.style.fontFamily=previewFontFamily(uploadedFont||$('fontCustom').value.trim()||selected);
+ el.style.fontWeight=$('bold').checked?'bold':'normal';
+ const list=$('fontPreviewChoices');list.replaceChildren();
+ const options=allLocalFontOptions.length?visibleFontOptions():[...$('font').options].map(o=>({family:o.value,label:o.textContent}));
+ for(const o of options.slice(0,100)){
+  const b=document.createElement('button');b.type='button';b.className='font-preview-choice';b.style.cssText='display:block;width:100%;text-align:left;padding:9px 12px;background:'+(o.family===selected?'#234e86':'#14243a')+';color:#f1f5fa;border:0;border-bottom:1px solid #354963;border-radius:0;cursor:pointer';
+  const name=document.createElement('div');name.textContent=o.label;name.style.cssText='font-size:12px;opacity:.85;margin-bottom:4px';
+  const demo=document.createElement('div');demo.textContent=sample;demo.style.cssText='font-size:26px;line-height:1.35;overflow-wrap:anywhere';demo.style.fontFamily=previewFontFamily(o.family);
+  b.append(name,demo);b.onclick=()=>{if(![...$('font').options].some(x=>x.value===o.family)){const opt=document.createElement('option');opt.value=o.family;opt.textContent=o.label;$('font').appendChild(opt)}$('font').value=o.family;uploadedFont='';$('fontCustom').value='';updateFontPreview();schedule()};list.appendChild(b);
+ }
+ if(options.length>100){const note=document.createElement('div');note.textContent=`只顯示首 100 個結果（共 ${options.length} 個），請輸入字體名稱縮窄搜尋。`;note.style.padding='10px';list.appendChild(note)}
+}
+const oldShowLocalFonts=showLocalFonts;
+showLocalFonts=function(){oldShowLocalFonts();updateFontPreview()};
+$('words').addEventListener('input',updateFontPreview);
+$('bold').addEventListener('change',updateFontPreview);
+$('fontCustom').addEventListener('input',updateFontPreview);
+$('font').addEventListener('change',updateFontPreview);
+$('fontFile').addEventListener('change',()=>setTimeout(updateFontPreview,100));
+setTimeout(updateFontPreview,0);
+
+async function scanLocalFonts(){
+ const info=$('scanFontStatus');if(!('queryLocalFonts' in window)){info.textContent='目前環境不支援本機字體授權。請使用桌面版 Chrome / Edge，並以 HTTPS 或 localhost 開啟；亦可匯入字體檔。';return}
+ try{
+  info.textContent='等待授權及讀取字體名稱…';
+  const fonts=await window.queryLocalFonts();const groups=new Map();
+  for(const f of fonts){if(!f.family)continue;if(!groups.has(f.family))groups.set(f.family,[]);groups.get(f.family).push(f)}
+  const entries=[...groups.entries()];let done=0,results=new Array(entries.length);let cursor=0;
+  async function worker(){while(cursor<entries.length){const i=cursor++, [family,faces]=entries[i];let zh='';
+    for(const f of faces.slice(0,3)){zh=await localizedName(f);if(zh)break}
+    results[i]={family,label:zh?`${zh}（${family}）`:fontDisplayName(family)};
+    done++;if(done%15===0)info.textContent=`正在讀取字體內的中文名稱：${done}/${entries.length}…`;
+  }}
+  await Promise.all(Array.from({length:Math.min(5,entries.length)},worker));
+  allLocalFontOptions=results.sort((a,b)=>a.label.localeCompare(b.label,'zh-Hant'));
+  const previous=$('font').value;showLocalFonts();
+  if(allLocalFontOptions.some(o=>o.family===previous))$('font').value=previous;
+  uploadedFont='';$('fontCustom').value='';
+  info.textContent=`已讀取 ${entries.length} 個字體家族，優先使用字體檔內的中文名稱；沒有中文記錄則保留原名。`;
+  build();
+ }catch(e){info.textContent='讀取未成功（'+(e.name||'錯誤')+'）：'+e.message+'。請檢查瀏覽器的字體存取權限，或使用 HTTPS／localhost。'}
+}
+$('scanFonts').onclick=scanLocalFonts;
+$('font').onchange=()=>{uploadedFont='';build()};$('fontCustom').oninput=()=>{uploadedFont='';schedule()};let pending;function schedule(){clearTimeout(pending);pending=setTimeout(build,250)}for(let id of ['words','spacing','align','bold','strokeAdjust','threshold','invert','repair','minArea','res','smooth','widthMM','thickness','backing','backingMM','alpha','vectorSmooth','addFrame','frameStroke','frameRadius','frameGap','evenLayout','layoutH','layoutV'])$(id).addEventListener('input',()=>{if(id==='threshold')$('thresholdVal').textContent=$(id).value;if(id==='strokeAdjust')$('strokeVal').textContent=Number($(id).value).toFixed(1);schedule()});$('build').onclick=build;
+function blank(w,h){return new Uint8Array(w*h)}function renderSource(){const res=val('res');let w=res,h=res,canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});let contentW=res,contentH=res;
+if(mode==='text'){
+ let text=$('words').value||' ';let lines=text.replace(/\r/g,'').split('\n').slice(0,8);
+ let fontName=uploadedFont||$('fontCustom').value.trim()||$('font').value;
+ let family='"'+fontName.replace(/"/g,'')+'", sans-serif';
+ let bold=$('bold').checked?'bold ':'';let spacing=val('spacing');
+ ctx.font=bold+'120px '+family;
+ const even=$('evenLayout').checked,extraH=val('layoutH'),extraV=val('layoutV');
+ const charLines=lines.map(line=>Array.from(line));
+ const measured=charLines.map(chars=>chars.map(ch=>ctx.measureText(ch).width));
+ const maxChar=Math.max(60,...measured.flat(),60),cellW=Math.max(35,maxChar+spacing+extraH);
+ const widths=measured.map((arr,i)=>even?Math.max(1,charLines[i].length)*cellW:arr.reduce((a,b)=>a+b,0)+Math.max(0,arr.length-1)*(spacing+extraH));
+ const lineStep=Math.max(80,152+extraV),naturalW=Math.max(30,...widths)+60,naturalH=lines.length*lineStep+48;
+ let scale=Math.min(res/naturalW,res/naturalH);
+ w=Math.max(20,Math.ceil(naturalW*scale));h=Math.max(20,Math.ceil(naturalH*scale));
+ canvas.width=w;canvas.height=h;ctx=canvas.getContext('2d',{willReadFrequently:true});
+ ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.fillStyle='#000';
+ ctx.textBaseline='alphabetic';ctx.font=bold+(120*scale)+'px '+family;
+ lines.forEach((line,i)=>{
+   const chars=Array.from(line),actualWidths=chars.map(ch=>ctx.measureText(ch).width);
+   const lineWidth=even?chars.length*cellW*scale:actualWidths.reduce((a,b)=>a+b,0)+Math.max(0,chars.length-1)*(spacing+extraH)*scale;
+   let x=$('align').value==='left'?30*scale:$('align').value==='right'?w-30*scale-lineWidth:(w-lineWidth)/2;
+   for(let j=0;j<chars.length;j++){
+     if(even)ctx.fillText(chars[j],x+(cellW*scale-actualWidths[j])/2,(i*lineStep+125)*scale);
+     else ctx.fillText(chars[j],x,(i*lineStep+125)*scale);
+     x+=even?cellW*scale:actualWidths[j]+(spacing+extraH)*scale;
+   }
+ });
+}
+else{if(!loadedImage)throw Error('請先匯入 PNG / JPG 圖片。');let ratio=loadedImage.naturalWidth/loadedImage.naturalHeight;w=ratio>=1?res:Math.max(1,Math.round(res*ratio));h=ratio>=1?Math.max(1,Math.round(res/ratio)):res;canvas.width=w;canvas.height=h;ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.clearRect(0,0,w,h);ctx.drawImage(loadedImage,0,0,w,h)}
+let pixels=ctx.getImageData(0,0,w,h).data,out=blank(w,h),threshold=val('threshold'),inverted=$('invert').checked;let transparent=false;if(mode==='image'&&$('alpha').checked){for(let i=3;i<pixels.length;i+=4){if(pixels[i]<245){transparent=true;break}}}for(let i=0;i<out.length;i++){let k=i*4,r=pixels[k],g=pixels[k+1],b=pixels[k+2],a=pixels[k+3];let solid=transparent?(a>=threshold):(0.2126*r+0.7152*g+0.0722*b)<threshold;out[i]=(inverted?!solid:solid)?1:0}return{w,h,a:out}}
+function morph(a,w,h,r,dilate){if(!r)return a;let out=blank(w,h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let yes=!dilate;outer:for(let yy=y-r;yy<=y+r;yy++)for(let xx=x-r;xx<=x+r;xx++){let v=(xx>=0&&xx<w&&yy>=0&&yy<h)?a[yy*w+xx]:0;if(dilate&&v){yes=true;break outer}if(!dilate&&!v){yes=false;break outer}}out[y*w+x]=yes?1:0}return out}
+function filterAreas(a,w,h,min){if(min<=1)return a;let seen=blank(w,h),stack=[],group=[];for(let k=0;k<a.length;k++){if(!a[k]||seen[k])continue;stack.push(k);seen[k]=1;group=[];while(stack.length){let p=stack.pop();group.push(p);let x=p%w,y=(p/w)|0;for(let [xx,yy] of [[x-1,y],[x+1,y],[x,y-1],[x,y+1]]){let q=yy*w+xx;if(xx>=0&&xx<w&&yy>=0&&yy<h&&a[q]&&!seen[q]){seen[q]=1;stack.push(q)}}}if(group.length<min)for(let q of group)a[q]=0}return a}
+function smoothMask(a,w,h,n){for(let z=0;z<n;z++){let out=a.slice();for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){let i=y*w+x,sum=0;for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++)sum+=a[i+yy*w+xx];if(sum>=7)out[i]=1;else if(sum<=2)out[i]=0}a=out}return a}
+function trim(m){let {a,w,h}=m,x0=w,y0=h,x1=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(a[y*w+x]){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}if(x1<0)throw Error('沒有偵測到實體區域，請調整閾值或反轉黑白。');let margin=2,nw=x1-x0+1+margin*2,nh=y1-y0+1+margin*2,b=blank(nw,nh);for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)b[(y-y0+margin)*nw+x-x0+margin]=a[y*w+x];return{a:b,w:nw,h:nh}}
+function addRoundedFrame(m){
+ if(!$('addFrame').checked)return m;
+ const widthMM=val('widthMM'),strokeMM=val('frameStroke'),radiusMM=val('frameRadius'),gapMM=val('frameGap');
+ if(!(strokeMM>0&&radiusMM>0&&gapMM>0))throw Error('外框粗幼、圓角半徑及間距必須大於 0。');
+ // Keep original glyph sampling density; add pixels outside rather than shrink the text.
+ // The configured width is the text width; the framed finished object grows accordingly.
+ const pxPerMM=m.w/widthMM;
+ const stroke=Math.max(1,strokeMM*pxPerMM),gap=Math.max(1,gapMM*pxPerMM);
+ const margin=Math.ceil(gap+stroke+3),side=Math.max(m.w,m.h)+2*margin,w=side,h=side;
+ const offsetX=Math.floor((side-m.w)/2),offsetY=Math.floor((side-m.h)/2);
+ if(w*h>1800000)throw Error('外框後圖像超過安全大小；可減少外框間距或選擇較低取樣精度。');
+ const c=document.createElement('canvas');c.width=w;c.height=h;
+ const ctx=c.getContext('2d',{willReadFrequently:true});
+ const x=stroke/2+2,y=stroke/2+2,rw=w-stroke-4,rh=h-stroke-4;
+ const radius=Math.max(stroke/2,Math.min(radiusMM*pxPerMM,rw/2,rh/2));
+ ctx.strokeStyle='#000';ctx.lineWidth=stroke;ctx.lineJoin='round';
+ ctx.beginPath();ctx.moveTo(x+radius,y);ctx.lineTo(x+rw-radius,y);ctx.quadraticCurveTo(x+rw,y,x+rw,y+radius);
+ ctx.lineTo(x+rw,y+rh-radius);ctx.quadraticCurveTo(x+rw,y+rh,x+rw-radius,y+rh);
+ ctx.lineTo(x+radius,y+rh);ctx.quadraticCurveTo(x,y+rh,x,y+rh-radius);
+ ctx.lineTo(x,y+radius);ctx.quadraticCurveTo(x,y,x+radius,y);ctx.closePath();ctx.stroke();
+ const img=ctx.getImageData(0,0,w,h).data,out=blank(w,h);
+ for(let i=0;i<out.length;i++)if(img[i*4+3]>=128)out[i]=1;
+ for(let yy=0;yy<m.h;yy++)for(let xx=0;xx<m.w;xx++)if(m.a[yy*m.w+xx])out[(yy+offsetY)*w+xx+offsetX]=1;
+ return {a:out,w,h,contentWidth:m.w};
+}
+function drawMask(){let c=$('maskView'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='#f9fafc';ctx.fillRect(0,0,c.width,c.height);if(!mask)return;let off=document.createElement('canvas');off.width=mask.w;off.height=mask.h;let cx=off.getContext('2d'),im=cx.createImageData(mask.w,mask.h);for(let i=0;i<mask.a.length;i++){let v=mask.a[i]?17:255;im.data.set([v,v,v,255],i*4)}cx.putImageData(im,0,0);let s=Math.min((c.width-28)/mask.w,(c.height-28)/mask.h);ctx.imageSmoothingEnabled=false;ctx.drawImage(off,(c.width-mask.w*s)/2,(c.height-mask.h*s)/2,mask.w*s,mask.h*s)}
+function addTri(list,a,b,c){list.push(...a,...b,...c)}function addQuad(list,a,b,c,d){addTri(list,a,b,c);addTri(list,a,c,d)}
+function makeMeshLegacy(){
+ const {w,h,a}=mask,mm=val('widthMM')*(mask.contentWidth?w/mask.contentWidth:1),thick=val('thickness'),base=$('backing').checked?val('backingMM'):0;
+ if(!(mm>0&&thick>0&&base>=0))throw Error('模型尺寸必須大於零。');
+ const unit=mm/w,mesh=[],top=base+thick,hasBase=base>0;
+ // V1.1: Merge occupied pixels into vertical rectangles, then triangulate
+ // each rectangle as a fan with ALL unit-length boundary edges retained.
+ // This preserves exact matching edges with adjacent rectangles and walls,
+ // unlike naive large quads which create non-manifold T-junctions.
+ if(false && !hasBase){
+   const rectangles=[],active=new Map();
+   for(let y=0;y<h;y++){
+     const runs=[];
+     for(let x=0;x<w;){if(!a[y*w+x]){x++;continue}
+       let start=x;while(x<w&&a[y*w+x])x++;runs.push([start,x]);
+     }
+     const next=new Map();
+     for(const [x0,x1] of runs){
+       const key=x0+':'+x1;
+       const existing=active.get(key);
+       if(existing){existing.y1=y+1;next.set(key,existing)}
+       else{const rect={x0,x1,y0:y,y1:y+1};rectangles.push(rect);next.set(key,rect)}
+     }
+     active.clear();for(const [k,v] of next)active.set(k,v);
+   }
+   const pt=(x,y,z)=>[x*unit,(h-y)*unit,z];
+   let occupied=0;
+   for(const {x0,x1,y0,y1} of rectangles){
+     occupied+=(x1-x0)*(y1-y0);
+     const cx=(x0+x1)/2,cy=(y0+y1)/2;
+     // Every boundary segment is exactly one pixel long; no T-junctions.
+     const ring=[];
+     for(let y=y0;y<y1;y++)ring.push([x0,y]);
+     for(let x=x0;x<x1;x++)ring.push([x,y1]);
+     for(let y=y1;y>y0;y--)ring.push([x1,y]);
+     for(let x=x1;x>x0;x--)ring.push([x,y0]);
+     for(let i=0;i<ring.length;i++){
+       const p=ring[i],q=ring[(i+1)%ring.length];
+       addTri(mesh,pt(cx,cy,top),pt(...p,top),pt(...q,top));
+       addTri(mesh,pt(cx,cy,0),pt(...q,0),pt(...p,0));
+     }
+   }
+   // Side faces: exact original pixel-grid edges, including holes.
+   for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(a[y*w+x]){
+     if(y===0||!a[(y-1)*w+x])addQuad(mesh,pt(x,y,0),pt(x,y,top),pt(x+1,y,top),pt(x+1,y,0));
+     if(y===h-1||!a[(y+1)*w+x])addQuad(mesh,pt(x+1,y+1,0),pt(x+1,y+1,top),pt(x,y+1,top),pt(x,y+1,0));
+     if(x===0||!a[y*w+x-1])addQuad(mesh,pt(x,y+1,0),pt(x,y+1,top),pt(x,y,top),pt(x,y,0));
+     if(x===w-1||!a[y*w+x+1])addQuad(mesh,pt(x+1,y,0),pt(x+1,y,top),pt(x+1,y+1,top),pt(x+1,y+1,0));
+   }
+   const rotation=Number($('rotationOutput').value||0),height=h*unit;
+   if($('mirrorOutput').checked){for(let i=0;i<mesh.length;i+=9){for(let j=0;j<9;j+=3)mesh[i+j]=mm-mesh[i+j];for(let j=0;j<3;j++){let t=mesh[i+3+j];mesh[i+3+j]=mesh[i+6+j];mesh[i+6+j]=t}}}
+   if(rotation){const r=rotation*Math.PI/180,co=Math.cos(r),si=Math.sin(r),cx=mm/2,cy=height/2;for(let i=0;i<mesh.length;i+=3){let dx=mesh[i]-cx,dy=mesh[i+1]-cy;mesh[i]=cx+co*dx+si*dy;mesh[i+1]=cy-si*dx+co*dy}}
+   const outWidth=rotation%180?height:mm,outHeight=rotation%180?mm:height;
+   if(rotation%180){const dx=(outWidth-mm)/2,dy=(outHeight-height)/2;for(let i=0;i<mesh.length;i+=3){mesh[i]+=dx;mesh[i+1]+=dy}}
+   return {mesh,occupied,unit,base,top,mm,height,outWidth,outHeight};
+ }
+ // Each occupied pixel has a full pair of matching top/bottom triangles.
+ // IMPORTANT: V8 used long top strips but one-pixel side faces. The T-junctions
+ // made ~2,000 unmatched boundary edges. V10 shares EXACT grid edges everywhere.
+ const pt=(x,y,z)=>[x*unit,(h-y)*unit,z];
+ let occupied=0;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+   const on=!!a[y*w+x];if(on)occupied++;
+   const z=on?top:base;
+   if(on||hasBase){
+     // +Z top; -Z bottom. Both use same pixel grid as vertical walls.
+     addQuad(mesh,pt(x,y,z),pt(x,y+1,z),pt(x+1,y+1,z),pt(x+1,y,z));
+     if(!hasBase||hasBase)addQuad(mesh,pt(x,y,0),pt(x+1,y,0),pt(x+1,y+1,0),pt(x,y+1,0));
+   }
+   if(on){
+     if(y===0||!a[(y-1)*w+x])addQuad(mesh,pt(x,y,base),pt(x,y,top),pt(x+1,y,top),pt(x+1,y,base));
+     if(y===h-1||!a[(y+1)*w+x])addQuad(mesh,pt(x+1,y+1,base),pt(x+1,y+1,top),pt(x,y+1,top),pt(x,y+1,base));
+     if(x===0||!a[y*w+x-1])addQuad(mesh,pt(x,y+1,base),pt(x,y+1,top),pt(x,y,top),pt(x,y,base));
+     if(x===w-1||!a[y*w+x+1])addQuad(mesh,pt(x+1,y,base),pt(x+1,y,top),pt(x+1,y+1,top),pt(x+1,y+1,base));
+   } else if(hasBase){
+     // At an occupied neighbor, wall is already added by occupied cell.
+     if(y===0)addQuad(mesh,pt(x,y,0),pt(x,y,base),pt(x+1,y,base),pt(x+1,y,0));
+     if(y===h-1)addQuad(mesh,pt(x+1,y+1,0),pt(x+1,y+1,base),pt(x,y+1,base),pt(x,y+1,0));
+     if(x===0)addQuad(mesh,pt(x,y+1,0),pt(x,y+1,base),pt(x,y,base),pt(x,y,0));
+     if(x===w-1)addQuad(mesh,pt(x+1,y,0),pt(x+1,y,base),pt(x+1,y+1,base),pt(x+1,y+1,0));
+   }
+ }
+ // Backing border occupied pixels also need external walls from 0 to base.
+ if(hasBase)for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(a[y*w+x]){
+   if(y===0)addQuad(mesh,pt(x,y,0),pt(x,y,base),pt(x+1,y,base),pt(x+1,y,0));
+   if(y===h-1)addQuad(mesh,pt(x+1,y+1,0),pt(x+1,y+1,base),pt(x,y+1,base),pt(x,y+1,0));
+   if(x===0)addQuad(mesh,pt(x,y+1,0),pt(x,y+1,base),pt(x,y,base),pt(x,y,0));
+   if(x===w-1)addQuad(mesh,pt(x+1,y,0),pt(x+1,y,base),pt(x+1,y+1,base),pt(x+1,y+1,0));
+ }
+ if($('mirrorOutput').checked){for(let i=0;i<mesh.length;i+=9){for(let j=0;j<9;j+=3)mesh[i+j]=mm-mesh[i+j];for(let j=0;j<3;j++){let t=mesh[i+3+j];mesh[i+3+j]=mesh[i+6+j];mesh[i+6+j]=t}}}
+ const rotation=Number($('rotationOutput').value||0),height=h*unit;
+ if(rotation){const r=rotation*Math.PI/180,co=Math.cos(r),si=Math.sin(r),cx=mm/2,cy=height/2;for(let i=0;i<mesh.length;i+=3){let dx=mesh[i]-cx,dy=mesh[i+1]-cy;mesh[i]=cx+co*dx+si*dy;mesh[i+1]=cy-si*dx+co*dy}}
+ const outWidth=rotation%180?height:mm,outHeight=rotation%180?mm:height;
+ if(rotation%180){const dx=(outWidth-mm)/2,dy=(outHeight-height)/2;for(let i=0;i<mesh.length;i+=3){mesh[i]+=dx;mesh[i+1]+=dy}}
+ return{mesh,occupied,unit,base,top,mm,height,outWidth,outHeight};
+}
+
+// V1.4: conservative watertight voxel mesh. Never merge rectangular faces:
+// those optimizations produced unmatched vertices and damaged glyphs in V1.4.
+// Preserve the original 720px mask for SVG and the 2D preview; only the STL
+// tessellation uses an adaptively sampled mask when Tinkercad requires it.
+function makeMesh(){
+ const original=mask, originalW=mask.w, originalH=mask.h;
+ const origMM=val('widthMM')*(original.contentWidth?originalW/original.contentWidth:1);
+ const origUnit=origMM/originalW;
+ const limit=200000;
+ function sampleMask(factor){
+  if(factor===1)return original;
+  const w=Math.max(1,Math.ceil(originalW/factor)),h=Math.max(1,Math.ceil(originalH/factor));
+  const a=new Uint8Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+   let x0=Math.floor(x*originalW/w),x1=Math.floor((x+1)*originalW/w);
+   let y0=Math.floor(y*originalH/h),y1=Math.floor((y+1)*originalH/h);
+   x1=Math.max(x0+1,x1);y1=Math.max(y0+1,y1);
+   let on=0,total=0;
+   for(let yy=y0;yy<y1;yy++)for(let xx=x0;xx<x1;xx++){on+=original.a[yy*originalW+xx]?1:0;total++}
+   a[y*w+x]=(on/total>=0.40)?1:0;
+  }
+  return {w,h,a,contentWidth:w*original.contentWidth/originalW};
+ }
+ function triangleEstimate(m){
+  const {w,h,a}=m;let occupied=0,boundary=0;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(a[y*w+x]){
+   occupied++;
+   if(x===0||!a[y*w+x-1])boundary++;
+   if(x===w-1||!a[y*w+x+1])boundary++;
+   if(y===0||!a[(y-1)*w+x])boundary++;
+   if(y===h-1||!a[(y+1)*w+x])boundary++;
+  }
+  return 4*occupied+2*boundary;
+ }
+ // A backing plate needs the original implementation's extra boundary faces.
+ // Estimate conservatively; final validation still runs on the actual mesh.
+ let selected=null,estimate=0,factor=1;
+ for(const f of [1,1.25,1.5,1.75,2,2.5,3,4,5,6]){
+  const candidate=sampleMask(f),n=triangleEstimate(candidate);
+  if(n<limit){selected=candidate;estimate=n;factor=f;break}
+ }
+ if(!selected)throw Error('圖案過於複雜，無法在 200,000 三角形目標內建立 STL。請簡化圖案。');
+ // Resolve diagonal-only pixel contacts that create non-manifold vertical edges.
+ // A one-cell bridge is added locally; original 720px SVG and preview remain untouched.
+ selected={...selected,a:new Uint8Array(selected.a)};
+ let diagonalFixes=0;
+ for(let pass=0;pass<3;pass++){
+  let changed=0;
+  for(let y=0;y<selected.h-1;y++)for(let x=0;x<selected.w-1;x++){
+   const i=y*selected.w+x, j=i+selected.w;
+   const tl=selected.a[i],tr=selected.a[i+1],bl=selected.a[j],br=selected.a[j+1];
+   if(tl&&br&&!tr&&!bl){selected.a[i+1]=1;changed++;}
+   else if(tr&&bl&&!tl&&!br){selected.a[i]=1;changed++;}
+  }
+  diagonalFixes+=changed;
+  if(!changed)break;
+ }
+ let result;
+ try{
+  mask=selected;
+  // Use the original, proven pixel-grid topology (not V1.4 rectangles).
+  result=makeMeshLegacy();
+ }finally{mask=original}
+ // SVG uses the full-resolution original pixel coordinates, not STL grid units.
+ result.unit=origUnit;
+ result.stlUnit=result.mm/selected.w;
+ result.stlGrid=selected.w+' × '+selected.h;
+ result.stlFactor=factor;
+ result.stlEstimate=estimate;
+ result.diagonalFixes=diagonalFixes;
+ result.sourceGrid=originalW+' × '+originalH;
+ return result;
+}
+
+// Verify all edges appear exactly twice. Quantize to absorb trig rounding.
+function validateMesh(mesh){
+ const edges=new Map(),q=n=>Math.round(n*1e5),key=(x,y,z)=>q(x)+','+q(y)+','+q(z);
+ let degenerate=0;
+ for(let i=0;i<mesh.length;i+=9){
+  const p=[key(...mesh.slice(i,i+3)),key(...mesh.slice(i+3,i+6)),key(...mesh.slice(i+6,i+9))];
+  if(new Set(p).size<3){degenerate++;continue}
+  for(let k=0;k<3;k++){let e=[p[k],p[(k+1)%3]].sort().join('|');edges.set(e,(edges.get(e)||0)+1)}
+ }
+ let boundary=0,nonManifold=0;for(let count of edges.values()){if(count===1)boundary++;else if(count!==2)nonManifold++}
+ return{boundary,nonManifold,degenerate,ok:boundary===0&&nonManifold===0&&degenerate===0};
+}
+function contours(){let {w,h,a}=mask,edges=new Map();function add(x1,y1,x2,y2){let k=x1+','+y1;if(!edges.has(k))edges.set(k,[]);edges.get(k).push([x2,y2])}for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(a[y*w+x]){if(y===0||!a[(y-1)*w+x])add(x,y,x+1,y);if(x===w-1||!a[y*w+x+1])add(x+1,y,x+1,y+1);if(y===h-1||!a[(y+1)*w+x])add(x+1,y+1,x,y+1);if(x===0||!a[y*w+x-1])add(x,y+1,x,y)}let paths=[];for(let [key,arr] of edges){while(arr.length){let [x,y]=key.split(',').map(Number),path=[[x,y]],next=arr.pop(),safety=0;while(next&&safety++<w*h*5){let [nx,ny]=next;path.push(next);if(nx===x&&ny===y)break;let q=edges.get(nx+','+ny);next=q&&q.length?q.pop():null}if(path.length>3)paths.push(path)}}return paths}
+function svgExport(){
+ const paths=contours(),u=model.unit;
+ const tol=Math.max(0.025,Math.min(0.12,u*0.65));
+ function transform(p){let x=$('mirrorOutput').checked?p[0]*u:model.mm-p[0]*u,y=(mask.h-p[1])*u;
+  let rotation=(Number($('rotationOutput').value||0)+180)%360,cx=model.mm/2,cy=model.height/2,dx=x-cx,dy=y-cy,r=rotation*Math.PI/180;
+  return [cx+Math.cos(r)*dx+Math.sin(r)*dy+(model.outWidth-model.mm)/2,cy-Math.sin(r)*dx+Math.cos(r)*dy+(model.outHeight-model.height)/2]}
+ function clean(raw){let pts=raw.slice();if(pts.length>1&&pts[0][0]===pts.at(-1)[0]&&pts[0][1]===pts.at(-1)[1])pts.pop();
+  let v=pts.map(transform);v=v.filter((p,i)=>{let prev=v[(i-1+v.length)%v.length],next=v[(i+1)%v.length];return Math.abs((p[0]-prev[0])*(next[1]-p[1])-(p[1]-prev[1])*(next[0]-p[0]))>1e-8});
+  return v;
+ }
+ const fmt=n=>Number(n.toFixed(3));
+ let d=paths.map(raw=>{let v=clean(raw);if(v.length<3)return '';return 'M'+v.map(p=>fmt(p[0])+' '+fmt(p[1])).join('L')+'Z'}).filter(Boolean).join('');
+ // Nonzero winding from directed pixel boundaries encodes holes without CSS.
+ return `<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="${model.outWidth.toFixed(3)}mm" height="${model.outHeight.toFixed(3)}mm" viewBox="0 0 ${model.outWidth.toFixed(3)} ${model.outHeight.toFixed(3)}"><path d="${d}" fill="#000000" fill-rule="nonzero" stroke="none"/></svg>`;
+}
+function save(blob,name){let url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function stlExport(){if(model.mesh.length/9>=300000||84+model.mesh.length/9*50>=25*1024*1024){msg('STL 超過 Tinkercad 匯入限制，請調整模型。');return}const check=validateMesh(model.mesh);if(!check.ok){msg('STL 驗證失敗：'+JSON.stringify(check));return}let tri=model.mesh.length/9,buffer=new ArrayBuffer(84+tri*50),view=new DataView(buffer),header=new TextEncoder().encode('Offline 2D to 3D V1.4');new Uint8Array(buffer,0,header.length).set(header);view.setUint32(80,tri,true);let offset=84;for(let i=0;i<model.mesh.length;i+=9){let a=model.mesh.slice(i,i+3),b=model.mesh.slice(i+3,i+6),c=model.mesh.slice(i+6,i+9);if($('stlFlipOnly').checked){for(const p of [a,b,c])p[0]=model.outWidth-p[0];[b,c]=[c,b]}let u=b.map((v,k)=>v-a[k]),v=c.map((q,k)=>q-a[k]),n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],len=Math.hypot(...n)||1;for(let t of [...n.map(z=>z/len),...a,...b,...c]){view.setFloat32(offset,t,true);offset+=4}view.setUint16(offset,0,true);offset+=2}save(new Blob([buffer],{type:'application/octet-stream'}),'model_v1_3.stl')}
+$('stl').onclick=()=>{if(model)stlExport()};$('svg').onclick=()=>{if(model)save(new Blob([svgExport()],{type:'image/svg+xml'}),'outline_v1_3.svg')};
+// Preview geometry is cached at a bounded resolution, independent of the STL mesh.
+function preparePreview(){
+ if(!mask||!model){previewCache=null;return}
+ const {w,h,a}=mask,step=Math.max(1,Math.ceil(Math.max(w,h)/145));
+ const cols=Math.ceil(w/step),rows=Math.ceil(h/step),solid=new Uint8Array(cols*rows);
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(a[y*w+x])solid[Math.floor(y/step)*cols+Math.floor(x/step)]=1;
+ const cells=[];
+ for(let j=0;j<rows;j++)for(let i=0;i<cols;i++)if(solid[j*cols+i]){
+  const x=i*step*model.unit,y=j*step*model.unit,xe=Math.min(w,(i+1)*step)*model.unit,ye=Math.min(h,(j+1)*step)*model.unit;
+  const faces=[[x,y,xe,ye,2]];
+  if(j===0||!solid[(j-1)*cols+i])faces.push([x,y,xe,y,0]);
+  if(j===rows-1||!solid[(j+1)*cols+i])faces.push([x,ye,xe,ye,0]);
+  if(i===0||!solid[j*cols+i-1])faces.push([x,y,x,ye,1]);
+  if(i===cols-1||!solid[j*cols+i+1])faces.push([xe,y,xe,ye,1]);
+  cells.push(faces);
+ }
+ previewCache={cells,width:w*model.unit,height:h*model.unit,z0:model.base,z1:model.top};
+}
+function draw3D(){
+ const c=$('modelView'),ctx=c.getContext('2d');ctx.fillStyle='#0b1729';ctx.fillRect(0,0,c.width,c.height);
+ if(!previewCache)return;
+ const {cells,width,height,z0,z1}=previewCache;
+ // One uniform millimetre-to-pixel scale for X, Y and Z.
+ const scale=Math.min(c.width/(Math.max(width,height)*1.8),c.height/(Math.max(width,height)*1.8+Math.abs(z1-z0)*1.5))*zoom;
+ const ca=Math.cos(angle),sa=Math.sin(angle),cp=Math.cos(pitch),sp=Math.sin(pitch);
+ const midZ=(z0+z1)/2;
+ const project=(x,y,z)=>{let dx=x-width/2,dy=y-height/2,dz=z-midZ;
+  let rx=dx*ca-dy*sa,ry=dx*sa+dy*ca;
+  return [c.width/2+rx*scale,c.height/2+(ry*sp-dz*cp)*scale,ry*cp+dz*sp];};
+ const polys=[];
+ for(const faces of cells)for(const [x,y,xe,ye,type] of faces){
+  const points=type===2?[[x,y,z1],[xe,y,z1],[xe,ye,z1],[x,ye,z1]]:[[x,y,z0],[xe,ye,z0],[xe,ye,z1],[x,y,z1]];
+  const pts=points.map(p=>project(...p));
+  polys.push({pts,depth:pts.reduce((s,p)=>s+p[2],0)/4,fill:type===2?'#db6da6':type===0?'#934a7c':'#a65287'});
+ }
+ polys.sort((a,b)=>a.depth-b.depth);
+ for(const poly of polys){ctx.beginPath();poly.pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=poly.fill;ctx.fill()}
+ ctx.fillStyle='#c7d7ea';ctx.font='16px system-ui';ctx.fillText('左右拖曳：水平旋轉　上下拖曳：俯仰　滾輪：縮放',18,30);
+}
+function requestPreview(){if(previewFrame)return;previewFrame=requestAnimationFrame(()=>{previewFrame=0;draw3D()})}
+$('modelView').onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,a:angle,p:pitch};e.currentTarget.setPointerCapture(e.pointerId)};
+$('modelView').onpointermove=e=>{if(!drag)return;angle=drag.a+(e.clientX-drag.x)*.009;pitch=clamp(drag.p+(e.clientY-drag.y)*.009,-Math.PI,Math.PI);requestPreview()};
+$('modelView').onpointerup=()=>drag=null;$('modelView').onpointercancel=()=>drag=null;
+$('modelView').addEventListener('wheel',e=>{e.preventDefault();zoom=clamp(zoom*(e.deltaY>0?.9:1.1),.25,5);requestPreview()},{passive:false});
+function build(){try{
+ const m=renderSource();
+ let r=val('repair');if(r)m.a=morph(morph(m.a,m.w,m.h,r,true),m.w,m.h,r,false);
+ m.a=smoothMask(m.a,m.w,m.h,val('smooth'));
+ if(mode==='text'){
+  let pixelRadius=Math.round(Math.abs(val('strokeAdjust'))*m.w/Math.max(1,val('widthMM')));
+  if(pixelRadius>0)m.a=morph(m.a,m.w,m.h,Math.min(30,pixelRadius),val('strokeAdjust')>0);
+ }
+ m.a=filterAreas(m.a,m.w,m.h,val('minArea'));
+ mask=addRoundedFrame(trim(m));
+ // STL uses validated pixel-grid geometry; adaptive STL-only tessellation protects Tinkercad compatibility.
+ // Never silently lower the selected quality; explain the tradeoff instead.
+ const pixels=mask.w*mask.h;
+ if(pixels>1100000)throw Error('目前圖像有 '+pixels.toLocaleString()+' 個像素，超過 STL 安全處理上限。已保留所選精度，請減少外框間距或手動選擇較低精度。');
+ model=makeMesh();model.validation=validateMesh(model.mesh);drawMask();
+ try{preparePreview();draw3D()}catch(previewError){previewCache=null;console.error('3D preview error:',previewError);}
+
+ $('stl').disabled=!model.validation.ok || model.mesh.length/9>=300000 || 84+model.mesh.length/9*50>=25*1024*1024;$('svg').disabled=false;
+ let count=model.mesh.length/9,bytes=84+count*50;
+ msg(`模型已建立 ✓\n輪廓取樣：${val('res')}px（沒有自動降低）\n有效尺寸：${model.mm.toFixed(1)} × ${model.height.toFixed(1)} × ${model.top.toFixed(1)} mm\n圖像取樣：${mask.w} × ${mask.h} 像素\nSTL 專用網格：${model.stlGrid}（${model.stlFactor===1?"原精度":"為符合 Tinkercad 限制而調整"}）\nSTL 三角形：${count.toLocaleString()} 個\nSTL 對角接觸修復：${model.diagonalFixes} 處\n網格檢查：${model.validation.ok?'通過 ✓ 封閉網格':'失敗 ⚠'}（開放邊 ${model.validation.boundary}、非流形邊 ${model.validation.nonManifold}、退化面 ${model.validation.degenerate}）\n估計 STL 檔案大小：${(bytes/1024/1024).toFixed(2)} MB\nTinkercad 限制：300,000 三角形及 25 MB；${count>=300000||bytes>=25*1024*1024?"⚠ STL 超限，已停用下載":"✓ STL 在限制內"}${bytes>20*1024*1024?"\n⚠ 超過 20 MB，建議關閉背板或簡化圖案；不會自動降低 720px 精度。":"\n✓ STL 採用封閉像素網格；SVG 保留原始 720px 輪廓"}`);
+}catch(err){mask=null;model=null;$('stl').disabled=true;$('svg').disabled=true;msg('無法建立模型：'+err.message);console.error(err)}}
+
+(async()=>{
+ // Do not request local-font access on page load.
+ // The user may request access explicitly using the font button.
+ try{await document.fonts.ready}catch(e){}
+ build();
+})();
+</script></body></html>
